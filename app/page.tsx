@@ -73,6 +73,9 @@ export default function ElectronicShopSystem() {
     lowStockProducts: [],
     recentTransactions: [],
   })
+  const [dailyReportData, setDailyReportData] = useState<
+    { reportDate: string; dailySales: number; dailyTransactions: number }[]
+  >([])
 
   // UI states
   const [cart, setCart] = useState<CartItem[]>([])
@@ -85,6 +88,7 @@ export default function ElectronicShopSystem() {
   const [isLoadingServices, setIsLoadingServices] = useState(true)
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true)
+  const [isLoadingDailyReport, setIsLoadingDailyReport] = useState(true)
   const [isProcessingTransaction, setIsProcessingTransaction] = useState(false)
 
   // Modal states
@@ -160,6 +164,17 @@ export default function ElectronicShopSystem() {
     setIsLoadingDashboard(false)
   }, [])
 
+  const fetchDailyReport = useCallback(async () => {
+    setIsLoadingDailyReport(true)
+    const response = await apiClient.getDailyReport()
+    if (response.success && response.data) {
+      setDailyReportData(response.data)
+    } else {
+      console.error("Failed to fetch daily report:", response.error)
+    }
+    setIsLoadingDailyReport(false)
+  }, [])
+
   // Initial data load
   useEffect(() => {
     fetchProducts()
@@ -176,8 +191,9 @@ export default function ElectronicShopSystem() {
       fetchTransactions()
     } else if (activeTab === "dashboard") {
       fetchDashboardStats()
+      fetchDailyReport() // Fetch daily report when dashboard tab is active
     }
-  }, [activeTab, fetchProducts, fetchServices, fetchTransactions, fetchDashboardStats])
+  }, [activeTab, fetchProducts, fetchServices, fetchTransactions, fetchDashboardStats, fetchDailyReport])
 
   // CRUD Operations for Products
   const createProduct = async () => {
@@ -336,72 +352,74 @@ export default function ElectronicShopSystem() {
   // Generate invoice content for services
   const generateInvoiceContent = (transaction: Transaction) => {
     const invoiceContent = `
-    <div style="font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #333; max-width: 800px; margin: 0 auto; padding: 30px; background-color: #ffffff; border: 1px solid #f0f0f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <!-- Header -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
             <tr>
                 <td style="width: 50%; vertical-align: top;">
-                    <img src="/images/luifix-logo.png" alt="LuiFix Logo" style="max-width: 150px; height: auto; margin-bottom: 10px;">
-                    <div style="font-size: 10px; color: #555;">Micro-soldering and Data recovery</div>
+                    <img src="/images/luifix-logo.png" alt="LuiFix Logo" style="max-width: 180px; height: auto; margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">Micro-soldering and Data recovery</div>
                 </td>
                 <td style="width: 50%; text-align: right; vertical-align: top;">
-                    <div style="font-weight: bold; font-size: 14px; color: #000;">Repair experts</div>
-                    <div style="font-size: 10px; color: #555;">KISUMU, MASENO</div>
-                    <div style="font-size: 10px; color: #555;">+254714679084</div>
-                    <div style="font-size: 10px; color: #555;">briankanyoro2002@gmail.com</div>
-                    <div style="font-size: 10px; color: #555;">https://repairexperts.net</div>
+                    <div style="font-weight: bold; font-size: 24px; color: #1a202c; margin-bottom: 5px;">LuiFix</div>
+                    <div style="font-size: 12px; color: #555;">BERUR COMPLEX, ELDORET</div>
+                    <div style="font-size: 12px; color: #555;">+254792472328</div>
+                    <div style="font-size: 12px; color: #555;">luifixke@gmail.com</div>
+                    <div style="font-size: 12px; color: #555;">https://luifixke.net</div>
                 </td>
             </tr>
         </table>
-        <hr style="border: none; border-top: 1px solid #eee; margin-bottom: 20px;">
+        <hr style="border: none; border-top: 2px solid #e0e0e0; margin-bottom: 30px;">
 
         <!-- INVOICE Title -->
-        <div style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px;">INVOICE</div>
+        <div style="text-align: center; font-size: 32px; font-weight: 800; color: #1a202c; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px;">INVOICE</div>
 
         <!-- Invoice Details & Bill To -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
             <tr>
-                <td style="width: 50%; vertical-align: top;">
-                    <div style="font-size: 10px; font-weight: bold; text-decoration: underline; margin-bottom: 5px;">Bill To</div>
-                    <div style="font-size: 12px; font-weight: bold; text-decoration: underline; margin-bottom: 2px;">${transaction.customer?.name.toUpperCase() || "N/A"}</div>
-                    <div style="font-size: 10px;">${transaction.customer?.address || "N/A"}</div>
-                    <div style="font-size: 10px;">${transaction.customer?.phone || "N/A"}</div>
+                <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                    <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #777; margin-bottom: 8px;">Bill To</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #1a202c; margin-bottom: 4px;">${transaction.customer?.name.toUpperCase() || "N/A"}</div>
+                    <div style="font-size: 12px; color: #555;">${transaction.customer?.address || "N/A"}</div>
+                    <div style="font-size: 12px; color: #555;">${transaction.customer?.phone || "N/A"}</div>
+                    ${transaction.customer?.email ? `<div style="font-size: 12px; color: #555;">${transaction.customer.email}</div>` : ""}
                 </td>
                 <td style="width: 50%; text-align: right; vertical-align: top;">
-                    <div style="font-size: 18px; font-weight: bold; color: #3b82f6; background-color: #e0f2fe; padding: 5px 10px; display: inline-block; border-radius: 5px; margin-bottom: 5px;">
+                    <div style="font-size: 20px; font-weight: bold; color: #3b82f6; background-color: #e0f2fe; padding: 8px 15px; display: inline-block; border-radius: 8px; margin-bottom: 10px; letter-spacing: 1px;">
                         INVCE${transaction.id.split("-")[1] || "00"}
                     </div>
-                    <div style="font-size: 14px; color: #555;">${new Date(transaction.created_at || "").toLocaleDateString("en-GB")}</div>
+                    <div style="font-size: 14px; color: #555; margin-top: 5px;">Date: ${new Date(transaction.created_at || "").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                    <div style="font-size: 14px; color: #555;">Status: <span style="font-weight: bold; color: ${transaction.status === "completed" ? "#22c55e" : transaction.status === "in-progress" ? "#f59e0b" : "#ef4444"};">${transaction.status.toUpperCase()}</span></div>
                 </td>
             </tr>
         </table>
 
         <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
             <thead>
-                <tr style="background-color: #3b82f6; color: white;">
-                    <th style="padding: 8px; text-align: left; border: 1px solid #3b82f6; width: 8%;">Sr no.</th>
-                    <th style="padding: 8px; text-align: left; border: 1px solid #3b82f6; width: 42%;">Product</th>
-                    <th style="padding: 8px; text-align: center; border: 1px solid #3b82f6; width: 10%;">Qty</th>
-                    <th style="padding: 8px; text-align: right; border: 1px solid #3b82f6; width: 20%;">Rate</th>
-                    <th style="padding: 8px; text-align: right; border: 1px solid #3b82f6; width: 20%;">Amount</th>
+                <tr style="background-color: #3b82f6; color: white; text-transform: uppercase; font-size: 11px;">
+                    <th style="padding: 12px 8px; text-align: left; width: 8%;">Sr no.</th>
+                    <th style="padding: 12px 8px; text-align: left; width: 42%;">Description</th>
+                    <th style="padding: 12px 8px; text-align: center; width: 10%;">Qty</th>
+                    <th style="padding: 12px 8px; text-align: right; width: 20%;">Unit Price</th>
+                    <th style="padding: 12px 8px; text-align: right; width: 20%;">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 ${transaction.items
                   ?.map(
                     (item, index) => `
-                    <tr>
-                        <td style="padding: 8px; border: 1px solid #ddd; vertical-align: top;">${index + 1}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd; vertical-align: top;">
-                            <div style="font-weight: bold;">${item.item_name}</div>
-                            ${item.item_id ? `<div style="font-size: 10px; color: #666;">${item.item_id}</div>` : ""}
-                            ${item.item_type === "service" ? `<div style="font-size: 10px; color: #666;">Priority: ${item.item_type.toUpperCase()}</div>` : ""}
+                    <tr style="background-color: ${index % 2 === 0 ? "#f9f9f9" : "#ffffff"};">
+                        <td style="padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top;">${index + 1}</td>
+                        <td style="padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: top;">
+                            <div style="font-weight: bold; color: #1a202c;">${item.item_name}</div>
+                            ${item.item_id ? `<div style="font-size: 10px; color: #666;">ID: ${item.item_id}</div>` : ""}
+                            ${item.item_type === "service" ? `<div style="font-size: 10px; color: #666;">Type: Service</div>` : ""}
                             ${item.warranty ? `<div style="font-size: 10px; color: #666;">Warranty: ${item.warranty}</div>` : ""}
                         </td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; vertical-align: top;">${item.quantity}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; vertical-align: top;">${item.unit_price.toLocaleString()}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; vertical-align: top;">${item.total_price.toLocaleString()}</td>
+                        <td style="padding: 10px 8px; border-bottom: 1px solid #eee; text-align: center; vertical-align: top;">${item.quantity}</td>
+                        <td style="padding: 10px 8px; border-bottom: 1px solid #eee; text-align: right; vertical-align: top;">KSh ${item.unit_price.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style="padding: 10px 8px; border-bottom: 1px solid #eee; text-align: right; vertical-align: top; font-weight: bold; color: #22c55e;">KSh ${item.total_price.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                 `,
                   )
@@ -410,32 +428,36 @@ export default function ElectronicShopSystem() {
         </table>
 
         <!-- Notes and Totals -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
             <tr>
                 <td style="width: 60%; vertical-align: top; padding-right: 20px;">
-                    <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Please Note</div>
-                    <div style="font-size: 10px; line-height: 1.5;">
+                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #1a202c;">Payment Instructions</div>
+                    <div style="font-size: 11px; line-height: 1.6; color: #555;">
                         <div style="margin-bottom: 5px;">1. All payments should be made to our official Accounts:</div>
-                        <div style="margin-left: 15px;">Lipa na Mpesa Buy goods</div>
-                        <div style="margin-left: 15px;">Till: 4351338</div>
-                        <div style="margin-top: 10px; text-align: center; font-weight: bold;">OR</div>
-                        <div style="margin-left: 15px; margin-top: 10px;">Send Money: +254714679084</div>
+                        <div style="margin-left: 15px; font-weight: bold; color: #000;">Lipa na Mpesa Buy goods</div>
+                        <div style="margin-left: 15px; font-weight: bold; color: #000;">Till: 4351338</div>
+                        <div style="margin-top: 10px; text-align: center; font-weight: bold; color: #000;">OR</div>
+                        <div style="margin-left: 15px; margin-top: 10px; font-weight: bold; color: #000;">Send Money: +254714679084</div>
                     </div>
-                    <div style="font-weight: bold; margin-top: 20px;">Total Outstanding Payment : KSh ${transaction.total.toLocaleString()}</div>
+                    <div style="font-weight: bold; font-size: 14px; margin-top: 25px; color: #ef4444;">Total Outstanding Payment : KSh ${transaction.total.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </td>
                 <td style="width: 40%; vertical-align: top; text-align: right;">
-                    <table style="width: 100%; border-collapse: collapse;">
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                         <tr>
-                            <td style="padding: 5px 0; border-bottom: 1px solid #eee; font-weight: bold;">Total</td>
-                            <td style="padding: 5px 0; border-bottom: 1px solid #eee; text-align: right;">KSh ${transaction.total.toLocaleString()}</td>
-                        </tr>
-                        <tr style="background-color: #3b82f6; color: white;">
-                            <td style="padding: 5px 0; font-weight: bold;">Grand Total</td>
-                            <td style="padding: 5px 0; text-align: right; font-weight: bold;">KSh ${transaction.total.toLocaleString()}</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; text-align: left; background-color: #f9f9f9;">Subtotal</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right; background-color: #f9f9f9;">KSh ${transaction.total.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 5px 0; border-top: 1px solid #eee; font-weight: bold;">Balance</td>
-                            <td style="padding: 5px 0; border-top: 1px solid #eee; text-align: right;">KSh ${transaction.total.toLocaleString()}</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; text-align: left;">VAT (16%)</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right;">KSh ${(transaction.total * 0.16).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr style="background-color: #3b82f6; color: white; font-size: 16px;">
+                            <td style="padding: 12px 15px; font-weight: bold; text-align: left;">Grand Total</td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: bold;">KSh ${(transaction.total * 1.16).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 15px; border-top: 1px solid #eee; font-weight: bold; text-align: left; background-color: #f9f9f9;">Balance Due</td>
+                            <td style="padding: 10px 15px; border-top: 1px solid #eee; text-align: right; font-weight: bold; color: #ef4444; background-color: #f9f9f9;">KSh ${(transaction.total * 1.16).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </table>
                 </td>
@@ -443,25 +465,17 @@ export default function ElectronicShopSystem() {
         </table>
 
         <!-- Signature -->
-        <div style="text-align: right; margin-top: 40px; margin-bottom: 20px;">
+        <div style="text-align: right; margin-top: 50px; margin-bottom: 20px;">
             <img src="/placeholder.svg?height=80&width=150" alt="Signature" style="max-width: 150px; height: auto; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px;">
-            <div style="font-weight: bold; font-size: 12px;">Luis Wanderi</div>
-            <div style="font-size: 10px; color: #555;">Signature</div>
+            <div style="font-weight: bold; font-size: 14px; color: #1a202c;">Luis Wanderi</div>
+            <div style="font-size: 11px; color: #555;">Authorized Signature</div>
         </div>
 
         <!-- Footer -->
-        <table style="width: 100%; border-collapse: collapse; border-top: 1px solid #eee; padding-top: 10px;">
-            <tr>
-                <td style="width: 50%; vertical-align: top;">
-                    <div style="font-weight: bold; font-size: 10px; margin-bottom: 5px;">Payable To</div>
-                    <div style="font-size: 10px;">Luis Wanderi</div>
-                </td>
-                <td style="width: 50%; text-align: right; vertical-align: top;">
-                    <div style="font-weight: bold; font-size: 10px; margin-bottom: 5px;">Banking Details</div>
-                    <div style="font-size: 10px;">TILL: 4351338</div>
-                </td>
-            </tr>
-        </table>
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #777;">
+            <p style="margin-bottom: 5px;">Thank you for your business! We appreciate your prompt payment.</p>
+            <p>&copy; ${new Date().getFullYear()} LuiFix. All rights reserved.</p>
+        </div>
     </div>
     `
     return invoiceContent
@@ -478,7 +492,7 @@ export default function ElectronicShopSystem() {
             <span style="color: white; font-size: 10px; font-weight: bold;">TR</span>
           </div>
           <div>
-            <div style="font-size: 14px; font-weight: bold; margin: 0;">TechRepair</div>
+            <div style="font-size: 14px; font-weight: bold; margin: 0;">Repair experts</div>
           </div>
         </div>
         <div style="font-size: 9px; color: #666; margin: 1px 0;">Micro-soldering and Data recovery</div>
@@ -558,11 +572,11 @@ export default function ElectronicShopSystem() {
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; background: #000; color: white; padding: 3px; margin: 2px 0;">
           <span style="font-weight: bold;">Grand Total</span>
-          <span style="font-weight: bold;">KSh ${transaction.total.toFixed(2)}</span>
+          <span style="font-weight: bold;">KSh ${(transaction.total * 1.16).toFixed(2)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0;">
           <span style="font-weight: bold;">Balance</span>
-          <span style="font-weight: bold;">KSh ${transaction.total.toFixed(2)}</span>
+          <span style="font-weight: bold;">KSh ${(transaction.total * 1.16).toFixed(2)}</span>
         </div>
       </div>
 
@@ -575,9 +589,9 @@ export default function ElectronicShopSystem() {
           <div style="margin: 2px 0; font-weight: bold;">   Lipa na Mpesa Buy goods</div>
           <div style="margin: 1px 0;">   Till: 4351338</div>
           <div style="margin: 2px 0; text-align: center; font-weight: bold;">OR</div>
-          <div style="margin: 1px 0;">   Send Money: ${transaction.customer?.phone || "N/A"}</div>
+          <div style="margin: 1px 0;">   Send Money: +254714679084</div>
           <div style="margin: 3px 0; font-weight: bold; border-top: 1px dotted #000; padding-top: 2px;">
-            Total Outstanding Payment: KSh ${transaction.total.toFixed(2)}
+            Total Outstanding Payment: KSh ${(transaction.total * 1.16).toFixed(2)}
           </div>
         </div>
       </div>
@@ -586,7 +600,7 @@ export default function ElectronicShopSystem() {
       <div style="text-align: right; margin: 8px 0; border-top: 1px dashed #000; padding-top: 6px;">
         <div style="display: inline-block; text-align: center;">
           <div style="width: 80px; height: 20px; border-bottom: 1px solid #000; margin-bottom: 2px; position: relative;">
-            <div style="position: absolute; bottom: 1px; right: 8px; font-family: cursive; font-size: 8px;">TechRepair</div>
+            <div style="position: absolute; bottom: 1px; right: 8px; font-family: cursive; font-size: 8px;">Repair experts</div>
           </div>
           <div style="font-size: 8px; font-weight: bold;">Tech Repair Manager</div>
           <div style="font-size: 8px;">Signature</div>
@@ -739,6 +753,7 @@ export default function ElectronicShopSystem() {
       fetchTransactions() // Refresh transactions list
       fetchProducts() // Refresh product stock levels
       fetchDashboardStats() // Refresh dashboard stats
+      fetchDailyReport() // Refresh daily report
     } else {
       alert(`Failed to complete transaction: ${response.error}`)
     }
@@ -795,8 +810,8 @@ ${transaction.customer?.phone || "N/A"}
 ${transaction.items?.map((item) => `- ${item.item_name} (Qty: ${item.quantity}, Price: KSh ${item.unit_price.toLocaleString()})`).join("\n")}
 
 *Total: KSh ${transaction.total.toLocaleString()}*
-*Grand Total: KSh ${transaction.total.toLocaleString()}*
-Balance: KSh ${transaction.total.toLocaleString()}
+*Grand Total: KSh ${(transaction.total * 1.16).toLocaleString()}*
+Balance: KSh ${(transaction.total * 1.16).toLocaleString()}
 
 *Payment Instructions:*
 Lipa na Mpesa Buy goods
@@ -805,7 +820,7 @@ Account Number: 16645
 OR
 Send Money: 0714679084
 
-Total Outstanding Payment: KSh ${transaction.total.toLocaleString()}
+Total Outstanding Payment: KSh ${(transaction.total * 1.16).toLocaleString()}
 
 Thank you for your business!
     `.trim()
@@ -831,7 +846,7 @@ Thank you for your business!
             <Smartphone className="h-10 w-10 text-white relative z-10" />
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
-            TechRepair Pro
+            Repair Experts
           </h1>
           <p className="text-gray-600 text-xl font-medium">Advanced Electronics & Repair Management System</p>
           <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mx-auto mt-4 rounded-full"></div>
@@ -1693,7 +1708,7 @@ Thank you for your business!
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard">
-            {isLoadingDashboard ? (
+            {isLoadingDashboard || isLoadingDailyReport ? (
               <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
                 <span className="ml-4 text-lg text-gray-600">Loading dashboard...</span>
@@ -1823,6 +1838,61 @@ Thank you for your business!
                           ))
                         )}
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Daily Sales Report */}
+                  <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg">
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        Daily Sales Report (Last 30 Days)
+                      </CardTitle>
+                      <CardDescription className="text-purple-100">
+                        Total revenue and transactions per day. (Note: True profit requires product cost data.)
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {isLoadingDailyReport ? (
+                        <div className="flex justify-center items-center h-32">
+                          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                          <span className="ml-2 text-gray-600">Loading daily report...</span>
+                        </div>
+                      ) : dailyReportData.length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500">No daily sales data available.</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead className="text-right">Daily Sales (KSH)</TableHead>
+                                <TableHead className="text-right">Transactions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {dailyReportData.map((day) => (
+                                <TableRow key={day.reportDate} className="hover:bg-purple-50/50">
+                                  <TableCell className="font-medium">
+                                    {new Date(day.reportDate).toLocaleDateString("en-GB", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                  </TableCell>
+                                  <TableCell className="text-right font-semibold text-green-600">
+                                    {day.dailySales.toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="text-right">{day.dailyTransactions}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

@@ -149,6 +149,17 @@ class ApiClient {
       recentTransactions: any[]
     }>("/dashboard/stats")
   }
+
+  async getDailyReport(params?: { startDate?: string; endDate?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.startDate) searchParams.set("start_date", params.startDate)
+    if (params?.endDate) searchParams.set("end_date", params.endDate)
+
+    const query = searchParams.toString()
+    return this.request<{ reportDate: string; dailySales: number; dailyTransactions: number }[]>(
+      `/dashboard/daily-report${query ? `?${query}` : ""}`,
+    )
+  }
 }
 
 export const apiClient = new ApiClient()
