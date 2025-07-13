@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
       type: row.type,
       status: row.status,
       notes: row.notes,
+      discount: Number.parseFloat(row.discount || 0), // Include discount
       created_at: row.created_at,
       updated_at: row.updated_at,
     }))
@@ -103,10 +104,12 @@ export async function POST(request: NextRequest) {
     await connection.beginTransaction()
 
     const body = await request.json()
-    const { customer, items, notes } = body as {
+    const { customer, items, notes, discount } = body as {
+      // Include discount
       customer: Customer
       items: CartItem[]
       notes?: string
+      discount?: number // Include discount in body type
     }
 
     if (!customer.name || !customer.phone || !items || items.length === 0) {
@@ -156,8 +159,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate total
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    // Calculate total (subtotal before discount)
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    // Calculate final total after applying discount
+    const finalTotal = discount ? subtotal * (1 - discount / 100) : subtotal
 
     // Determine transaction type
     const hasServices = items.some((item) => item.type === "service")
@@ -167,8 +172,8 @@ export async function POST(request: NextRequest) {
     // Create transaction
     const transactionId = `txn-${Date.now()}`
     await connection.execute(
-      "INSERT INTO transactions (id, customer_id, total, type, status, notes) VALUES (?, ?, ?, ?, ?, ?)",
-      [transactionId, customerId, total, type, status, notes ?? null], // Ensure null for optional notes
+      "INSERT INTO transactions (id, customer_id, total, type, status, notes, discount) VALUES (?, ?, ?, ?, ?, ?, ?)", // Include discount
+      [transactionId, customerId, finalTotal, type, status, notes ?? null, discount ?? 0], // Pass discount
     )
 
     // Create transaction items

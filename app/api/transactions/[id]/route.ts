@@ -52,6 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       type: row.type,
       status: row.status,
       notes: row.notes,
+      discount: Number.parseFloat(row.discount || 0), // Include discount
       created_at: row.created_at,
       updated_at: row.updated_at,
     }
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await request.json()
-    const { status, notes } = body
+    const { status, notes, discount } = body // Include discount
 
     if (!status) {
       return NextResponse.json<ApiResponse>(
@@ -99,8 +100,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       )
     }
 
-    const query = "UPDATE transactions SET status = ?, notes = ? WHERE id = ?"
-    const result = await executeQuery(query, [status, notes, params.id])
+    const query = "UPDATE transactions SET status = ?, notes = ?, discount = ? WHERE id = ?" // Update query
+    const result = await executeQuery(query, [status, notes, discount ?? null, params.id]) // Pass discount
 
     if (!result.success) {
       return NextResponse.json<ApiResponse>(

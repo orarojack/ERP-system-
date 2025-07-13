@@ -40,6 +40,7 @@ export interface Transaction {
   type: "sale" | "service"
   status: "completed" | "pending" | "in-progress"
   notes?: string
+  discount?: number
   items?: TransactionItem[]
   created_at?: string
   updated_at?: string

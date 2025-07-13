@@ -82,6 +82,7 @@ export default function ElectronicShopSystem() {
   const [customer, setCustomer] = useState<Customer>({ id: "", name: "", phone: "", email: "", address: "" })
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("pos")
+  const [discountPercentage, setDiscountPercentage] = useState(0) // New state for discount
 
   // Loading states
   const [isLoadingProducts, setIsLoadingProducts] = useState(true)
@@ -344,13 +345,24 @@ export default function ElectronicShopSystem() {
     setCart(cart.map((item) => (item.id === id && item.type === type ? { ...item, quantity } : item)))
   }
 
-  // Calculate total
-  const calculateTotal = () => {
+  // Calculate subtotal (before discount)
+  const calculateSubtotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0)
+  }
+
+  // Calculate grand total (after discount)
+  const calculateGrandTotal = () => {
+    const subtotal = calculateSubtotal()
+    const discountAmount = subtotal * (discountPercentage / 100)
+    return subtotal - discountAmount
   }
 
   // Generate invoice content for services
   const generateInvoiceContent = (transaction: Transaction) => {
+    const subtotal = transaction.items?.reduce((sum, item) => sum + item.total_price, 0) || 0
+    const discountAmount = transaction.discount ? subtotal * (transaction.discount / 100) : 0
+    const grandTotal = subtotal - discountAmount
+
     const invoiceContent = `
     <div style="font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #333; max-width: 800px; margin: 0 auto; padding: 30px; background-color: #ffffff; border: 1px solid #f0f0f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
         <!-- Header -->
@@ -361,11 +373,11 @@ export default function ElectronicShopSystem() {
                     <div style="font-size: 11px; color: #666; margin-top: 5px;">Micro-soldering and Data recovery</div>
                 </td>
                 <td style="width: 50%; text-align: right; vertical-align: top;">
-                    <div style="font-weight: bold; font-size: 24px; color: #1a202c; margin-bottom: 5px;">LuiFix</div>
-                    <div style="font-size: 12px; color: #555;">BERUR COMPLEX, ELDORET</div>
-                    <div style="font-size: 12px; color: #555;">+254792472328</div>
-                    <div style="font-size: 12px; color: #555;">luifixke@gmail.com</div>
-                    <div style="font-size: 12px; color: #555;">https://luifixke.net</div>
+                    <div style="font-weight: bold; font-size: 24px; color: #1a202c; margin-bottom: 5px;">Repair experts</div>
+                    <div style="font-size: 12px; color: #555;">KISUMU, MASENO</div>
+                    <div style="font-size: 12px; color: #555;">+254714679084</div>
+                    <div style="font-size: 12px; color: #555;">briankanyoro2002@gmail.com</div>
+                    <div style="font-size: 12px; color: #555;">https://repairexperts.net</div>
                 </td>
             </tr>
         </table>
@@ -439,25 +451,31 @@ export default function ElectronicShopSystem() {
                         <div style="margin-top: 10px; text-align: center; font-weight: bold; color: #000;">OR</div>
                         <div style="margin-left: 15px; margin-top: 10px; font-weight: bold; color: #000;">Send Money: +254714679084</div>
                     </div>
-                    <div style="font-weight: bold; font-size: 14px; margin-top: 25px; color: #ef4444;">Total Outstanding Payment : KSh ${transaction.total.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div style="font-weight: bold; font-size: 14px; margin-top: 25px; color: #ef4444;">Total Outstanding Payment : KSh ${grandTotal.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </td>
                 <td style="width: 40%; vertical-align: top; text-align: right;">
                     <table style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                         <tr>
                             <td style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; text-align: left; background-color: #f9f9f9;">Subtotal</td>
-                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right; background-color: #f9f9f9;">KSh ${transaction.total.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right; background-color: #f9f9f9;">KSh ${subtotal.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
+                        ${
+                          transaction.discount && transaction.discount > 0
+                            ? `
                         <tr>
-                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; text-align: left;">VAT (16%)</td>
-                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right;">KSh ${(transaction.total * 0.16).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; text-align: left; color: #ef4444;">Discount (${transaction.discount}%)</td>
+                            <td style="padding: 10px 15px; border-bottom: 1px solid #eee; text-align: right; color: #ef4444;">- KSh ${discountAmount.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
+                        `
+                            : ""
+                        }
                         <tr style="background-color: #3b82f6; color: white; font-size: 16px;">
                             <td style="padding: 12px 15px; font-weight: bold; text-align: left;">Grand Total</td>
-                            <td style="padding: 12px 15px; text-align: right; font-weight: bold;">KSh ${(transaction.total * 1.16).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: bold;">KSh ${grandTotal.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr>
                             <td style="padding: 10px 15px; border-top: 1px solid #eee; font-weight: bold; text-align: left; background-color: #f9f9f9;">Balance Due</td>
-                            <td style="padding: 10px 15px; border-top: 1px solid #eee; text-align: right; font-weight: bold; color: #ef4444; background-color: #f9f9f9;">KSh ${(transaction.total * 1.16).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="padding: 10px 15px; border-top: 1px solid #eee; text-align: right; font-weight: bold; color: #ef4444; background-color: #f9f9f9;">KSh ${grandTotal.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                     </table>
                 </td>
@@ -474,7 +492,7 @@ export default function ElectronicShopSystem() {
         <!-- Footer -->
         <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 11px; color: #777;">
             <p style="margin-bottom: 5px;">Thank you for your business! We appreciate your prompt payment.</p>
-            <p>&copy; ${new Date().getFullYear()} LuiFix. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Repair experts. All rights reserved.</p>
         </div>
     </div>
     `
@@ -483,6 +501,10 @@ export default function ElectronicShopSystem() {
 
   // Generate receipt content for thermal printer (58mm width)
   const generateReceiptContent = (transaction: Transaction) => {
+    const subtotal = transaction.items?.reduce((sum, item) => sum + item.total_price, 0) || 0
+    const discountAmount = transaction.discount ? subtotal * (transaction.discount / 100) : 0
+    const grandTotal = subtotal - discountAmount
+
     const receiptContent = `
     <div style="width: 58mm; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.3; color: #000;">
       <!-- Header Section -->
@@ -492,7 +514,7 @@ export default function ElectronicShopSystem() {
             <span style="color: white; font-size: 10px; font-weight: bold;">TR</span>
           </div>
           <div>
-            <div style="font-size: 14px; font-weight: bold; margin: 0;">Repair experts</div>
+            <div style="font-size: 14px; font-weight: bold; margin: 0;">TechRepair</div>
           </div>
         </div>
         <div style="font-size: 9px; color: #666; margin: 1px 0;">Micro-soldering and Data recovery</div>
@@ -567,16 +589,26 @@ export default function ElectronicShopSystem() {
       <!-- Totals Section -->
       <div style="border-top: 1px solid #000; padding-top: 4px; margin-bottom: 8px;">
         <div style="display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0;">
-          <span style="font-weight: bold;">Total</span>
-          <span style="font-weight: bold;">KSh ${transaction.total.toFixed(2)}</span>
+          <span style="font-weight: bold;">Subtotal</span>
+          <span style="font-weight: bold;">KSh ${subtotal.toFixed(2)}</span>
         </div>
+        ${
+          transaction.discount && transaction.discount > 0
+            ? `
+        <div style="display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0; color: #ef4444;">
+          <span style="font-weight: bold;">Discount (${transaction.discount}%)</span>
+          <span style="font-weight: bold;">- KSh ${discountAmount.toFixed(2)}</span>
+        </div>
+        `
+            : ""
+        }
         <div style="display: flex; justify-content: space-between; font-size: 11px; background: #000; color: white; padding: 3px; margin: 2px 0;">
           <span style="font-weight: bold;">Grand Total</span>
-          <span style="font-weight: bold;">KSh ${(transaction.total * 1.16).toFixed(2)}</span>
+          <span style="font-weight: bold;">KSh ${grandTotal.toFixed(2)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 10px; margin: 2px 0;">
           <span style="font-weight: bold;">Balance</span>
-          <span style="font-weight: bold;">KSh ${(transaction.total * 1.16).toFixed(2)}</span>
+          <span style="font-weight: bold;">KSh ${grandTotal.toFixed(2)}</span>
         </div>
       </div>
 
@@ -587,11 +619,12 @@ export default function ElectronicShopSystem() {
           <div style="margin: 1px 0;">1. All payments should be made to our</div>
           <div style="margin: 1px 0;">   official Accounts:</div>
           <div style="margin: 2px 0; font-weight: bold;">   Lipa na Mpesa Buy goods</div>
-          <div style="margin: 1px 0;">   Till: 4351338</div>
+          <div style="margin: 1px 0;">   PAYBILL: 542542</div>
+          <div style="margin: 1px 0;">   ACC NO: 542542</div>
           <div style="margin: 2px 0; text-align: center; font-weight: bold;">OR</div>
           <div style="margin: 1px 0;">   Send Money: +254714679084</div>
           <div style="margin: 3px 0; font-weight: bold; border-top: 1px dotted #000; padding-top: 2px;">
-            Total Outstanding Payment: KSh ${(transaction.total * 1.16).toFixed(2)}
+            Total Outstanding Payment: KSh ${grandTotal.toFixed(2)}
           </div>
         </div>
       </div>
@@ -600,7 +633,7 @@ export default function ElectronicShopSystem() {
       <div style="text-align: right; margin: 8px 0; border-top: 1px dashed #000; padding-top: 6px;">
         <div style="display: inline-block; text-align: center;">
           <div style="width: 80px; height: 20px; border-bottom: 1px solid #000; margin-bottom: 2px; position: relative;">
-            <div style="position: absolute; bottom: 1px; right: 8px; font-family: cursive; font-size: 8px;">Repair experts</div>
+            <div style="position: absolute; bottom: 1px; right: 8px; font-family: cursive; font-size: 8px;">TechRepair</div>
           </div>
           <div style="font-size: 8px; font-weight: bold;">Tech Repair Manager</div>
           <div style="font-size: 8px;">Signature</div>
@@ -734,7 +767,7 @@ export default function ElectronicShopSystem() {
     }
 
     setIsProcessingTransaction(true)
-    const response = await apiClient.createTransaction({ customer, items: cart })
+    const response = await apiClient.createTransaction({ customer, items: cart, discount: discountPercentage }) // Pass discount
 
     if (response.success && response.data) {
       alert("Transaction completed successfully!")
@@ -750,6 +783,7 @@ export default function ElectronicShopSystem() {
       // Clear cart and customer
       setCart([])
       setCustomer({ id: "", name: "", phone: "", email: "", address: "" })
+      setDiscountPercentage(0) // Reset discount
       fetchTransactions() // Refresh transactions list
       fetchProducts() // Refresh product stock levels
       fetchDashboardStats() // Refresh dashboard stats
@@ -797,8 +831,12 @@ export default function ElectronicShopSystem() {
   // Send invoice via WhatsApp
   const sendWhatsAppInvoice = (transaction: Transaction) => {
     const whatsappNumber = "+254714679084" // The specified WhatsApp number
+    const subtotal = transaction.items?.reduce((sum, item) => sum + item.total_price, 0) || 0
+    const discountAmount = transaction.discount ? subtotal * (transaction.discount / 100) : 0
+    const grandTotal = subtotal - discountAmount
+
     const invoiceSummary = `
-*Repair experts*
+*Repair experts Invoice*
 Invoice #: INVCE${transaction.id.split("-")[1] || "00"}
 Date: ${new Date(transaction.created_at || "").toLocaleDateString("en-GB")}
 
@@ -809,9 +847,10 @@ ${transaction.customer?.phone || "N/A"}
 *Items:*
 ${transaction.items?.map((item) => `- ${item.item_name} (Qty: ${item.quantity}, Price: KSh ${item.unit_price.toLocaleString()})`).join("\n")}
 
-*Total: KSh ${transaction.total.toLocaleString()}*
-*Grand Total: KSh ${(transaction.total * 1.16).toLocaleString()}*
-Balance: KSh ${(transaction.total * 1.16).toLocaleString()}
+*Subtotal: KSh ${subtotal.toLocaleString()}*
+${transaction.discount && transaction.discount > 0 ? `*Discount (${transaction.discount}%): - KSh ${discountAmount.toLocaleString()}*\n` : ""}
+*Grand Total: KSh ${grandTotal.toLocaleString()}*
+Balance: KSh ${grandTotal.toLocaleString()}
 
 *Payment Instructions:*
 Lipa na Mpesa Buy goods
@@ -820,7 +859,7 @@ Account Number: 16645
 OR
 Send Money: 0714679084
 
-Total Outstanding Payment: KSh ${(transaction.total * 1.16).toLocaleString()}
+Total Outstanding Payment: KSh ${grandTotal.toLocaleString()}
 
 Thank you for your business!
     `.trim()
@@ -1148,14 +1187,33 @@ Thank you for your business!
 
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
                           <div className="flex justify-between items-center text-lg font-bold">
-                            <span>Total:</span>
-                            <span className="text-green-600">KSH {calculateTotal().toLocaleString()}</span>
+                            <span>Subtotal:</span>
+                            <span className="text-green-600">KSH {calculateSubtotal().toLocaleString()}</span>
                           </div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            VAT (16%): KSH {(calculateTotal() * 0.16).toLocaleString()}
+                          <div className="mt-2">
+                            <Label htmlFor="discount" className="text-sm font-medium text-gray-700">
+                              Discount (%)
+                            </Label>
+                            <Input
+                              id="discount"
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={discountPercentage}
+                              onChange={(e) => setDiscountPercentage(Number(e.target.value))}
+                              placeholder="0"
+                              className="mt-1 bg-white/70"
+                            />
                           </div>
-                          <div className="text-sm font-semibold text-blue-600">
-                            Grand Total: KSH {(calculateTotal() * 1.16).toLocaleString()}
+                          {discountPercentage > 0 && (
+                            <div className="flex justify-between items-center text-sm text-red-600 mt-1">
+                              <span>Discount Amount:</span>
+                              <span>- KSH {(calculateSubtotal() * (discountPercentage / 100)).toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center text-lg font-bold text-blue-600 mt-2">
+                            <span>Grand Total:</span>
+                            <span>KSH {calculateGrandTotal().toLocaleString()}</span>
                           </div>
                         </div>
 
